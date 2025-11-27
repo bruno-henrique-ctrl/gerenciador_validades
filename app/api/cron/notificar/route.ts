@@ -13,7 +13,6 @@ interface SavedSubscription {
     };
 }
 
-
 webpush.setVapidDetails(
     "mailto:admin@seusite.com",
     process.env.VAPID_PUBLIC_KEY!,
@@ -44,10 +43,22 @@ export async function GET() {
     const maisProximo = produtos[0];
     const precoSugerido = await sugerirPreco(maisProximo);
 
-    const items = await redis.lrange("push:subscribers", 0, -1);
-    console.log("SUBSCRIBERS SALVOS:", items);
+    const rawSubscribers = await redis.lrange("push:subscribers", 0, -1);
+    console.log("SUBSCRIBERS SALVOS (RAW):", rawSubscribers);
 
-    const subscribers = items.map((item) => JSON.parse(item));
+    const subscribers = rawSubscribers
+        .map((item) => {
+            if (typeof item === "string") {
+                try {
+                    return JSON.parse(item);
+                } catch {
+                    console.log("❌ Item inválido no Redis:", item);
+                    return null;
+                }
+            }
+            return item;
+        })
+        .filter(Boolean);
 
     const payload = JSON.stringify({
         title: "Produto próximo da validade!",
@@ -56,20 +67,21 @@ export async function GET() {
 
     console.log("🔥 Cron executado!");
     console.log("▶️ Produto escolhido:", maisProximo.nome);
+    console.log("▶️ Enviando push para", subscribers.length, "usuários");
 
     for (const sub of subscribers) {
-        const subscription = {
+        const subscription: SavedSubscription = {
             endpoint: sub.endpoint,
-            expirationTime: null,
+            expirationTime: sub.expirationTime ?? null,
             keys: {
-                p256dh: sub.p256dh,
-                auth: sub.auth
-            }
+                p256dh: sub.keys.p256dh,
+                auth: sub.keys.auth,
+            },
         };
 
         try {
             await webpush.sendNotification(subscription, payload);
-            console.log("✔️ Push enviado:", sub.endpoint);
+            console.log("✔️ Push enviado:", subscription.endpoint);
         } catch (err) {
             console.log("❌ Erro no push:", err);
         }
