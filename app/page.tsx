@@ -142,7 +142,7 @@ export default function Home() {
       applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
     });
 
-    await fetch("/api/push/salvar", {
+    await fetch("/api/push", {
       method: "POST",
       body: JSON.stringify(sub),
     });
