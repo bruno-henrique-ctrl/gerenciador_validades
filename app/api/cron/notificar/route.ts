@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from "next/server";
 import { redis } from "@/utils/db";
 import { Product } from "@/app/types";
@@ -29,6 +28,7 @@ export async function GET() {
         const dados = await redis.hgetall<Product>(`produto:${id}`);
         if (!dados) continue;
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _id, ...resto } = dados;
         produtos.push({ id, ...resto });
     }
@@ -44,12 +44,19 @@ export async function GET() {
     const maisProximo = produtos[0];
     const precoSugerido = await sugerirPreco(maisProximo);
 
-    const endpoints = await redis.keys("https://*");
+    const items = await redis.lrange("push:subscribers", 0, -1);
+    const subscribers = items.map((item) => JSON.parse(item));
+    const endpoints = subscribers.map((sub) => sub.endpoint);
 
     const payload = JSON.stringify({
         title: "Produto próximo da validade!",
         body: `${maisProximo.nome} vence em ${maisProximo.validade}\nNovo preço sugerido: R$ ${precoSugerido}`,
     });
+
+    console.log("🔥 Cron executado!");
+    console.log("▶️ Produto escolhido:", maisProximo.nome);
+    console.log("▶️ Enviando push para", endpoints.length, "usuários");
+
 
     for (const endpoint of endpoints) {
         const sub = await redis.hgetall(endpoint);

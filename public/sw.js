@@ -7,7 +7,15 @@ self.addEventListener("push", (event) => {
     try {
         if (event.data) {
             const txt = event.data.text();
-            data = JSON.parse(txt); // OBRIGATÓRIO: precisa ser JSON
+
+            try {
+                data = JSON.parse(txt);
+            } catch {
+                data = {
+                    title: "Notificação",
+                    body: txt
+                };
+            }
         }
     } catch (e) {
         console.log("Erro ao ler push data", e);
@@ -43,3 +51,4 @@ self.addEventListener("notificationclick", (event) => {
         })
     );
 });
+
