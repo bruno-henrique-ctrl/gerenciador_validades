@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { redis } from "@/utils/db";
 import { Product } from "@/app/types";
 import { sugerirPreco } from "@/utils/ia";
+import webpush from "web-push";
+
+webpush.setVapidDetails(
+    "mailto:admin@seusite.com",
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+);
 
 export async function GET() {
     const ids = await redis.lrange("produtos:list", 0, -1);
@@ -22,7 +29,7 @@ export async function GET() {
     }
 
     if (produtos.length === 0) {
-        return Response.json(
+        return NextResponse.json(
             { error: "Nenhum produto cadastrado" },
             { status: 404 }
         );
@@ -33,9 +40,26 @@ export async function GET() {
     const maisProximo = produtos[0];
     const precoSugerido = await sugerirPreco(maisProximo);
 
+    const subs = await redis.lrange("push:subscribers", 0, -1);
+
+    const payload = JSON.stringify({
+        title: "Produto próximo da validade!",
+        body: `${maisProximo.nome} vence em ${maisProximo.validade}\nPreço sugerido: R$ ${precoSugerido}`,
+    });
+
+    for (const rawSub of subs) {
+        const subscription = JSON.parse(rawSub);
+
+        try {
+            await webpush.sendNotification(subscription, payload);
+        } catch (err) {
+            console.log("❌ Erro ao enviar push:", err);
+        }
+    }
+
     return NextResponse.json({
-        message: "Cron job executado com sucesso",
+        message: "Cron job executado com sucesso e notificações enviadas",
         produto: maisProximo,
-        precoSugerido: precoSugerido
+        precoSugerido
     });
 }
