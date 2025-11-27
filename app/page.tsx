@@ -129,27 +129,39 @@ export default function Home() {
 
   async function ativarPush() {
     const permission = await Notification.requestPermission();
-
     if (permission !== "granted") {
-      alert("Você precisa permitir as notificações.");
+      alert("Permita as notificações!");
       return;
     }
 
     const reg = await navigator.serviceWorker.ready;
 
-    const sub = await reg.pushManager.subscribe({
+    let sub = await reg.pushManager.getSubscription();
+    const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+
+    if (sub) {
+      await sub.unsubscribe();
+    }
+
+    sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+      applicationServerKey: urlBase64ToUint8Array(key as string),
     });
 
-    await fetch("/api/push", {
+    await fetch("/api/push/", {
       method: "POST",
       body: JSON.stringify(sub),
     });
 
-    alert("Notificações ativadas com sucesso!");
+    alert("Notificações ativadas!");
   }
 
+  function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+  }
 
   return (
     <div style={{ padding: 32 }}>
