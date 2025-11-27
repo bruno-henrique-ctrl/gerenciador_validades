@@ -1,0 +1,16 @@
+{
+    "name": "Meu Sistema de Validades",
+    "short_name": "Validades",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#000000",
+    "description": "PWA com notificações",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}

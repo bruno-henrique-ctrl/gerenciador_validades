@@ -1,65 +1,293 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useState } from "react";
+import { Product } from "./types";
 
 export default function Home() {
+  const [produtos, setProdutos] = useState<Product[]>([]);
+  const [form, setForm] = useState({
+    nome: "",
+    preco: "",
+    quantidade: "",
+    validade: "",
+  });
+
+  const [editId, setEditId] = useState<string | null>(null);
+  const [loadingPreco, setLoadingPreco] = useState<boolean>(false);
+
+  const [modalAberto, setModalAberto] = useState<boolean>(false);
+  const [modalDeletando, setModalDeletando] = useState<boolean>(false);
+
+  const [produtoAlvo, setProdutoAlvo] = useState<string | null>(null);
+  const [precoSugerido, setPrecoSugerido] = useState<number | null>(null);
+
+  const [mostrarModal, setMostrarModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js");
+    }
+
+    const init = async () => setMostrarModal(true);
+    init()
+  }, []);
+
+  async function carregar() {
+    const res = await fetch("/api/produtos");
+    const data = await res.json();
+
+    setProdutos(data);
+  }
+
+  // Criar
+  async function criarProduto(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+
+    await fetch("/api/produtos", {
+      method: "POST",
+      body: JSON.stringify(form),
+    });
+
+    setForm({ nome: "", preco: "", quantidade: "", validade: "" });
+    await carregar();
+  }
+
+  // Editar - carregar valores
+  function iniciarEdicao(produto: Product) {
+    setEditId(produto.id);
+    setForm({
+      nome: produto.nome,
+      preco: String(produto.preco),
+      quantidade: String(produto.quantidade),
+      validade: produto.validade,
+    });
+  }
+
+  // Editar - salvar
+  async function salvarEdicao(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!editId) return;
+
+    await fetch(`/api/produtos/${editId}`, {
+      method: "PUT",
+      body: JSON.stringify(form),
+    });
+
+    setEditId(null);
+    setForm({ nome: "", preco: "", quantidade: "", validade: "" });
+    await carregar();
+  }
+
+  // IA – recuperar preço
+  async function sugerirPreco(id: string) {
+    setProdutoAlvo(id);
+    setPrecoSugerido(null);
+    setLoadingPreco(true);
+    setModalAberto(true);
+
+    const res = await fetch(`/api/produtos/${id}/preco`, { method: "POST" });
+    const { novoPreco } = await res.json();
+    setPrecoSugerido(novoPreco);
+
+    setLoadingPreco(false);
+  }
+
+  // Aceitar preço sugerido (PUT)
+  async function aceitarPreco() {
+    if (!produtoAlvo || precoSugerido == null) return;
+
+    await fetch(`/api/produtos/${produtoAlvo}`, {
+      method: "PUT",
+      body: JSON.stringify({ preco: precoSugerido }),
+    });
+
+    setModalAberto(false);
+    setProdutoAlvo(null);
+    setPrecoSugerido(null);
+
+    await carregar();
+  }
+
+  // Excluir
+  async function excluir(id: string) {
+    await fetch(`/api/produtos/${id}`, { method: "DELETE" });
+    await carregar();
+  }
+
+  const confirmarExclusao = (id: string) => {
+    setModalDeletando(true);
+    setProdutoAlvo(id);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      carregar();
+    };
+
+    init();
+  }, []);
+
+  async function ativarPush() {
+    const permission = await Notification.requestPermission();
+
+    if (permission !== "granted") {
+      alert("Você precisa permitir as notificações.");
+      return;
+    }
+
+    const reg = await navigator.serviceWorker.ready;
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    });
+
+    await fetch("/api/push/salvar", {
+      method: "POST",
+      body: JSON.stringify(sub),
+    });
+
+    alert("Notificações ativadas com sucesso!");
+  }
+
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div style={{ padding: 32 }}>
+      <h1>📦 Sistema de Produtos</h1>
+
+      <h2>{editId ? "Editar Produto" : "Cadastrar Produto"}</h2>
+
+      <form
+        onSubmit={editId ? salvarEdicao : criarProduto}
+        style={{ marginBottom: 32 }}
+      >
+        <input type="text" placeholder="Nome" value={form.nome}
+          onChange={(e) => setForm({ ...form, nome: e.target.value })} />
+
+        <input type="number" placeholder="Preço" value={form.preco}
+          onChange={(e) => setForm({ ...form, preco: e.target.value })} />
+
+        <input type="number" placeholder="Quantidade" value={form.quantidade}
+          onChange={(e) => setForm({ ...form, quantidade: e.target.value })} />
+
+        <input type="date" value={form.validade}
+          onChange={(e) => setForm({ ...form, validade: e.target.value })} />
+
+        <button type="submit">{editId ? "Salvar" : "Criar"}</button>
+
+        {editId && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditId(null);
+              setForm({ nome: "", preco: "", quantidade: "", validade: "" });
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Cancelar
+          </button>
+        )}
+      </form>
+
+      <h2>Lista de Produtos</h2>
+
+      <table border={1} cellPadding={8}>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Preço</th>
+            <th>Quantidade</th>
+            <th>Validade</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {produtos.map((p) => (
+            <tr key={p.id}>
+              <td>{p.nome}</td>
+              <td>R$ {p.preco}</td>
+              <td>{p.quantidade}</td>
+              <td>{p.validade}</td>
+              <td>
+                <button onClick={() => confirmarExclusao(p.id)}>
+                  Excluir
+                </button>
+
+                {modalDeletando && p.id === produtoAlvo ? (
+                  <div>
+                    <h2>Tem certeza que deseja excluir o produto?</h2>
+
+                    <button onClick={() => excluir(p.id)}>
+                      Sim
+                    </button>
+
+                    <button onClick={() => setModalDeletando(false)}>
+                      Não
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button onClick={() => iniciarEdicao(p)}>
+                      Editar
+                    </button>
+
+                    <button onClick={() => sugerirPreco(p.id)}>
+                      IA: Sugerir Preço
+                    </button>
+                  </>
+                )}
+
+              </td>
+            </tr>
+          ))}
+        </tbody>
+
+      </table>
+
+
+      {modalAberto && (
+        <div>
+          <div>
+            {loadingPreco ? (
+              <>
+                <h2>Calculando preço sugerido...</h2>
+                <div />
+              </>
+            ) : (
+              <>
+                <h2>Preço sugerido pela IA</h2>
+                <p><b>Novo preço:</b> R$ {precoSugerido}</p>
+
+                <button onClick={aceitarPreco}>
+                  Aceitar
+                </button>
+
+                <button
+                  onClick={() => {
+                    setModalAberto(false);
+                    setProdutoAlvo(null);
+                    setPrecoSugerido(null);
+                  }}
+                >
+                  Rejeitar
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      </main>
+      )}
+      {mostrarModal && (
+        <div className="modal">
+          <h2>Receber notificações?</h2>
+          <p>Ative notificações para ser avisado sobre produtos próximos da validade.</p>
+
+          <button onClick={ativarPush}>
+            Permitir Notificações
+          </button>
+        </div>
+      )}
+
     </div>
+
   );
 }
