@@ -45,8 +45,9 @@ export async function GET() {
     const precoSugerido = await sugerirPreco(maisProximo);
 
     const items = await redis.lrange("push:subscribers", 0, -1);
+    console.log("SUBSCRIBERS SALVOS:", items);
+
     const subscribers = items.map((item) => JSON.parse(item));
-    const endpoints = subscribers.map((sub) => sub.endpoint);
 
     const payload = JSON.stringify({
         title: "Produto próximo da validade!",
@@ -55,17 +56,11 @@ export async function GET() {
 
     console.log("🔥 Cron executado!");
     console.log("▶️ Produto escolhido:", maisProximo.nome);
-    console.log("▶️ Enviando push para", endpoints.length, "usuários");
 
-
-    for (const endpoint of endpoints) {
-        const sub = await redis.hgetall(endpoint);
-
-        if (!sub) continue;
-
+    for (const sub of subscribers) {
         const subscription = {
             endpoint: sub.endpoint,
-            expirationTime: sub.expirationTime || null,
+            expirationTime: null,
             keys: {
                 p256dh: sub.p256dh,
                 auth: sub.auth
@@ -73,7 +68,8 @@ export async function GET() {
         };
 
         try {
-            await webpush.sendNotification(subscription as SavedSubscription, payload);
+            await webpush.sendNotification(subscription, payload);
+            console.log("✔️ Push enviado:", sub.endpoint);
         } catch (err) {
             console.log("❌ Erro no push:", err);
         }
