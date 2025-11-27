@@ -7,7 +7,7 @@ self.addEventListener("push", (event) => {
     try {
         if (event.data) {
             const txt = event.data.text();
-            data = JSON.parse(txt);
+            data = JSON.parse(txt); // OBRIGATÓRIO: precisa ser JSON
         }
     } catch (e) {
         console.log("Erro ao ler push data", e);
