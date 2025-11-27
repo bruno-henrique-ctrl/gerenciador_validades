@@ -4,6 +4,16 @@ import { Product } from "@/app/types";
 import { sugerirPreco } from "@/utils/ia";
 import webpush from "web-push";
 
+interface SavedSubscription {
+    endpoint: string;
+    expirationTime: number | null;
+    keys: {
+        p256dh: string;
+        auth: string;
+    };
+}
+
+
 webpush.setVapidDetails(
     "mailto:admin@seusite.com",
     process.env.VAPID_PUBLIC_KEY!,
@@ -16,49 +26,54 @@ export async function GET() {
 
     for (const id of ids) {
         const dados = await redis.hgetall<Product>(`produto:${id}`);
-
         if (!dados) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id: _, ...resto } = dados;
-
-        produtos.push({
-            id,
-            ...resto,
-        });
+        const { id: _id, ...resto } = dados;
+        produtos.push({ id, ...resto });
     }
 
     if (produtos.length === 0) {
-        return NextResponse.json(
-            { error: "Nenhum produto cadastrado" },
-            { status: 404 }
-        );
+        return NextResponse.json({ error: "Nenhum produto cadastrado" }, { status: 404 });
     }
 
-    produtos.sort((a, b) => new Date(a.validade).getTime() - new Date(b.validade).getTime());
+    produtos.sort((a, b) =>
+        new Date(a.validade).getTime() - new Date(b.validade).getTime()
+    );
 
     const maisProximo = produtos[0];
     const precoSugerido = await sugerirPreco(maisProximo);
 
-    const subs = await redis.lrange("push:subscribers", 0, -1);
+    const endpoints = await redis.keys("https://*");
 
     const payload = JSON.stringify({
         title: "Produto próximo da validade!",
-        body: `${maisProximo.nome} vence em ${maisProximo.validade}\nPreço sugerido: R$ ${precoSugerido}`,
+        body: `${maisProximo.nome} vence em ${maisProximo.validade}\nNovo preço sugerido: R$ ${precoSugerido}`,
     });
 
-    for (const rawSub of subs) {
-        const subscription = JSON.parse(rawSub);
+    for (const endpoint of endpoints) {
+        const sub = await redis.hgetall(endpoint);
+
+        if (!sub) continue;
+
+        const subscription = {
+            endpoint: sub.endpoint,
+            expirationTime: sub.expirationTime || null,
+            keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth
+            }
+        };
 
         try {
-            await webpush.sendNotification(subscription, payload);
+            await webpush.sendNotification(subscription as SavedSubscription, payload);
         } catch (err) {
-            console.log("❌ Erro ao enviar push:", err);
+            console.log("❌ Erro no push:", err);
         }
     }
 
     return NextResponse.json({
-        message: "Cron job executado com sucesso e notificações enviadas",
+        ok: true,
+        message: "Notificações enviadas!",
         produto: maisProximo,
         precoSugerido
     });
