@@ -1,10 +1,16 @@
 self.addEventListener("push", (event) => {
-    let data = { title: "Nova notificação", body: "" };
+    let data = {
+        title: "Notificação",
+        body: "Você recebeu uma mensagem"
+    };
 
     try {
-        if (event.data) data = event.data.json();
+        if (event.data) {
+            const txt = event.data.text();
+            data = JSON.parse(txt);
+        }
     } catch (e) {
-        console.error("Erro ao ler push data", e);
+        console.log("Erro ao ler push data", e);
     }
 
     event.waitUntil(
@@ -12,12 +18,11 @@ self.addEventListener("push", (event) => {
             body: data.body,
             icon: "/icon.png",
             badge: "/icon.png",
-            data: { url: "/" },
-            vibrate: [200, 100, 200],
-            requireInteraction: false,
+            data: { url: "/" }
         })
     );
 });
+
 
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();

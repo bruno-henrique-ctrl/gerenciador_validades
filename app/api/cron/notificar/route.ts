@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { NextResponse } from "next/server";
 import { redis } from "@/utils/db";
 import { Product } from "@/app/types";
