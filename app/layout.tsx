@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Gerenciador de Validades",
   description: "Gerenciador de Validades para produtos do mercado",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
