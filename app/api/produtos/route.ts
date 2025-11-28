@@ -21,7 +21,7 @@ export async function GET() {
         });
     }
 
-    if (produtos.length === 0) {
+    if (!produtos) {
         return Response.json(
             { error: "Nenhum produto cadastrado" },
             { status: 404 }

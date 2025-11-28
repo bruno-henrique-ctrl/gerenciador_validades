@@ -52,3 +52,14 @@ self.addEventListener("notificationclick", (event) => {
     );
 });
 
+self.addEventListener("notificationclose", (event) => {
+    event.waitUntil(
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientsArr) => {
+            for (const client of clientsArr) {
+                if (client.url.includes(event.notification.data?.url || "/")) {
+                    return client.close();
+                }
+            }
+        })
+    );
+});

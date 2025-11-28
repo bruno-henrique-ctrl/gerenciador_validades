@@ -65,7 +65,7 @@ export async function GET() {
         body: `${maisProximo.nome} vence em ${maisProximo.validade}\nNovo preço sugerido: R$ ${precoSugerido}`,
     });
 
-    console.log("🔥 Cron executado!");
+    console.log("🔥 sgora le eessa merda!");
     console.log("▶️ Produto escolhido:", maisProximo.nome);
     console.log("▶️ Enviando push para", subscribers.length, "usuários");
 
