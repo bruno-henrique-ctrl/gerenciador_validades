@@ -28,7 +28,7 @@ export async function GET() {
         if (!dados) continue;
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { id: _id, ...resto } = dados;
+        const { id: _, ...resto } = dados;
         produtos.push({ id, ...resto });
     }
 
@@ -40,34 +40,43 @@ export async function GET() {
         new Date(a.validade).getTime() - new Date(b.validade).getTime()
     );
 
+    const hoje = new Date();
+
+    const proximos = produtos.filter((p) => {
+        const validade = new Date(`${p.validade}T00:00:00`);
+        const diff = validade.getTime() - hoje.getTime();
+        const dias = diff / (1000 * 60 * 60 * 24);
+        return dias <= 15 && dias >= 0;
+    });
+
     const maisProximo = produtos[0];
     const precoSugerido = await sugerirPreco(maisProximo);
 
     const rawSubscribers = await redis.lrange("push:subscribers", 0, -1);
-    console.log("SUBSCRIBERS SALVOS (RAW):", rawSubscribers);
-
     const subscribers = rawSubscribers
         .map((item) => {
-            if (typeof item === "string") {
-                try {
-                    return JSON.parse(item);
-                } catch {
-                    console.log("❌ Item inválido no Redis:", item);
-                    return null;
-                }
+            try {
+                return JSON.parse(item);
+            } catch {
+                console.warn("❌ Assinatura inválida:", item);
+                return null;
             }
-            return item;
         })
         .filter(Boolean);
 
+    const count = proximos.length;
+    const nomes = proximos.map((p) => p.nome).join(", ") || "nenhum produto";
+
     const payload = JSON.stringify({
-        title: "Produto próximo da validade!",
-        body: `${maisProximo.nome} vence em ${maisProximo.validade}\nNovo preço sugerido: R$ ${precoSugerido}`,
+        title: "⚠️ Produtos próximos da validade!",
+        body:
+            count > 0
+                ? `${count} produto(s) vencendo em até 15 dias: ${nomes}\nProduto mais urgente: ${maisProximo.nome} (${maisProximo.validade})\n💰 Preço sugerido: R$ ${precoSugerido}`
+                : `Nenhum produto vencendo nos próximos 15 dias.`,
     });
 
-    console.log("🔥 sgora le eessa merda!");
-    console.log("▶️ Produto escolhido:", maisProximo.nome);
-    console.log("▶️ Enviando push para", subscribers.length, "usuários");
+    console.log("📦 Enviando notificação para", subscribers.length, "usuários...");
+    console.log("➡️ Produtos próximos da validade:", proximos.map(p => p.nome));
 
     for (const sub of subscribers) {
         const subscription: SavedSubscription = {
@@ -81,16 +90,18 @@ export async function GET() {
 
         try {
             await webpush.sendNotification(subscription, payload);
-            console.log("✔️ Push enviado:", subscription.endpoint);
+            console.log("✔️ Push enviado para:", subscription.endpoint);
         } catch (err) {
-            console.log("❌ Erro no push:", err);
+            console.error("❌ Erro ao enviar push:", err);
         }
     }
 
     return NextResponse.json({
         ok: true,
         message: "Notificações enviadas!",
-        produto: maisProximo,
-        precoSugerido
+        proximos: proximos.map(p => ({ nome: p.nome, validade: p.validade })),
+        total: count,
+        produtoMaisProximo: maisProximo,
+        precoSugerido,
     });
 }
