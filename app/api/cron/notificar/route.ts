@@ -53,14 +53,18 @@ export async function GET() {
     const precoSugerido = await sugerirPreco(maisProximo);
 
     const rawSubscribers = await redis.lrange("push:subscribers", 0, -1);
+
     const subscribers = rawSubscribers
         .map((item) => {
-            try {
-                return JSON.parse(item);
-            } catch {
-                console.warn("❌ Assinatura inválida:", item);
-                return null;
+            if (typeof item === "string") {
+                try {
+                    return JSON.parse(item);
+                } catch {
+                    console.log("❌ Item inválido no Redis:", item);
+                    return null;
+                }
             }
+            return item;
         })
         .filter(Boolean);
 
