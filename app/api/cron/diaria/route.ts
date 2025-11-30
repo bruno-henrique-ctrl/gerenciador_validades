@@ -26,6 +26,7 @@ export async function GET() {
         const dados = await redis.hgetall<Product>(`produto:${id}`);
         if (!dados) continue;
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _, ...resto } = dados;
         produtos.push({ id, ...resto });
     }

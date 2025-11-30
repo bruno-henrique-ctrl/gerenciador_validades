@@ -20,7 +20,6 @@ webpush.setVapidDetails(
 );
 
 export async function GET() {
-    // 🔹 Recupera todos os produtos do Redis
     const ids = await redis.lrange("produtos:list", 0, -1);
     const produtos: Product[] = [];
 
@@ -28,30 +27,31 @@ export async function GET() {
         const dados = await redis.hgetall<Product>(`produto:${id}`);
         if (!dados) continue;
 
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _, ...resto } = dados;
-        produtos.push({ id: _, ...resto });
+        produtos.push({ id, ...resto });
     }
 
     if (produtos.length === 0) {
         return NextResponse.json({ error: "Nenhum produto cadastrado" }, { status: 404 });
     }
 
-    produtos.sort((a, b) =>
-        new Date(a.validade).getTime() - new Date(b.validade).getTime()
-    );
-
     const hoje = new Date();
+    const hojeStr = hoje.toISOString().split("T")[0];
 
+    // 🟥 Produtos que vencem HOJE
+    const venceHoje = produtos.filter((p) => {
+        const validadeStr = new Date(p.validade).toISOString().split("T")[0];
+        return validadeStr === hojeStr;
+    });
+
+    // 🟧 Produtos que vencem em até 7 dias
     const proximos = produtos.filter((p) => {
         const validade = new Date(`${p.validade}T00:00:00`);
         const diff = validade.getTime() - hoje.getTime();
         const dias = diff / (1000 * 60 * 60 * 24);
-        return dias <= 7 && dias >= 0;
+        return dias > 0 && dias <= 7;
     });
-
-    if (proximos.length === 0) {
-        return NextResponse.json({ ok: true, message: "Nenhum produto perto da validade." });
-    }
 
     // 🔹 Lê assinaturas
     const rawSubscribers = await redis.lrange("push:subscribers", 0, -1);
@@ -70,15 +70,35 @@ export async function GET() {
         return NextResponse.json({ ok: false, message: "Nenhum assinante de push encontrado." });
     }
 
-    console.log(`📦 Enviando alertas para ${proximos.length} produtos...`);
+    console.log(`📦 Enviando notificações: ${venceHoje.length} vencem hoje, ${proximos.length} próximos.`);
 
-    // 🔹 Processa notificações em paralelo
+    // 🟥 Notificações de produtos que vencem HOJE
+    await Promise.all(
+        venceHoje.map(async (produto) => {
+            const payload = JSON.stringify({
+                title: `⚠️ ${produto.nome} vence hoje!`,
+                body: `O produto ${produto.nome} vence hoje. Atualize o preço ou remova-o do estoque.`,
+            });
+
+            await Promise.all(
+                subscribers.map(async (sub) => {
+                    try {
+                        await webpush.sendNotification(sub, payload);
+                        console.log(`✔️ Push enviado: ${produto.nome} (vence hoje)`);
+                    } catch (err) {
+                        console.error("❌ Erro ao enviar push:", err);
+                    }
+                })
+            );
+        })
+    );
+
+    // 🟧 Notificações de produtos que vencem em até 7 dias
     await Promise.all(
         proximos.map(async (produto) => {
             const precoSugerido = await sugerirPreco(produto);
-
             const payload = JSON.stringify({
-                title: `⚠️ ${produto.nome} está próximo da validade!`,
+                title: `🟠 ${produto.nome} está próximo da validade!`,
                 body: `Vence em ${new Date(produto.validade).toLocaleDateString("pt-BR")}.\nPreço sugerido: R$ ${precoSugerido}`,
             });
 
@@ -86,7 +106,7 @@ export async function GET() {
                 subscribers.map(async (sub) => {
                     try {
                         await webpush.sendNotification(sub, payload);
-                        console.log(`✔️ Push enviado sobre ${produto.nome}`);
+                        console.log(`✔️ Push enviado: ${produto.nome} (vence em breve)`);
                     } catch (err) {
                         console.error("❌ Erro ao enviar push:", err);
                     }
@@ -97,6 +117,6 @@ export async function GET() {
 
     return NextResponse.json({
         ok: true,
-        message: `Notificações enviadas para ${proximos.length} produtos.`,
+        message: `Notificações enviadas — ${venceHoje.length} vencem hoje, ${proximos.length} próximos.`,
     });
 }
