@@ -43,6 +43,14 @@ export default function Lista({
         });
     }
 
+    const venceHoje = (data: string) => {
+        const date = new Date(`${data}T00:00:00`);
+        const today = new Date();
+        const diff = date.getTime() - today.getTime();
+        const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
+        return dias === 0;
+    }
+
     const BGColor = (data: string) => {
         const date = new Date(`${data}T00:00:00`);
         const today = new Date();
@@ -64,6 +72,20 @@ export default function Lista({
                 <h2 className="text-xl font-bold text-cyan-400 mb-3 text-center">
                     Lista de Produtos
                 </h2>
+
+                {produtos.filter((p: Product) => venceHoje(p.validade)).length > 0 && (
+                    <div className="p-3 m-2 text-center bg-red-900 font-semibold rounded-md mt-4">
+                        <h3 className="text-lg mb-2">⚠️ Produtos que vencem hoje</h3>
+                        <ul className="text-sm text-red-200">
+                            {produtos
+                                .filter((p: Product) => venceHoje(p.validade))
+                                .map((p: Product) => (
+                                    <li key={p.id} className="text-2xl">{p.nome}</li>
+                                ))}
+                        </ul>
+                    </div>
+                )}
+
                 <table className="min-w-full border border-slate-700 text-sm rounded-md overflow-hidden">
                     <thead className="bg-slate-800 text-cyan-400 uppercase text-xs">
                         <tr>
@@ -73,6 +95,7 @@ export default function Lista({
                             <th className="p-3 border border-slate-700">Ações</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {produtos.length > 0 ? produtos.map((p: Product) => (
                             <tr

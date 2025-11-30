@@ -59,6 +59,7 @@ export default function Cadastrar({
                             className="p-2 rounded-md bg-slate-700 text-white focus:ring-2 focus:ring-cyan-500"
                             value={form.nome}
                             onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                            required
                         />
 
                         <label htmlFor="preco" className="sr-only">
@@ -71,6 +72,7 @@ export default function Cadastrar({
                             className="p-2 rounded-md bg-slate-700 text-white focus:ring-2 focus:ring-cyan-500"
                             value={form.preco}
                             onChange={(e) => setForm({ ...form, preco: e.target.value })}
+                            required
                         />
 
                         <label htmlFor="validade" className="sr-only">
@@ -82,6 +84,7 @@ export default function Cadastrar({
                             className="p-2 rounded-md bg-slate-700 text-white focus:ring-2 focus:ring-cyan-500"
                             value={form.validade}
                             onChange={(e) => setForm({ ...form, validade: e.target.value })}
+                            required
                         />
 
                         <div className="flex gap-3 justify-center mt-2">
