@@ -3,10 +3,6 @@
         {
             "path": "/api/cron/notificar",
             "schedule": "0 12 * * 1"
-        },
-        {
-            "path": "/api/cron/diaria",
-            "schedule": "0 10 * * *"
         }
     ]
 }
