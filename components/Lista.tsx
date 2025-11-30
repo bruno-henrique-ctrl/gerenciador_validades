@@ -43,6 +43,21 @@ export default function Lista({
         });
     }
 
+    const BGColor = (data: string) => {
+        const date = new Date(`${data}T00:00:00`);
+        const today = new Date();
+        const diff = date.getTime() - today.getTime();
+        const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+        console.log(dias)
+
+        if (dias <= 7) {
+            return "bg-red-900"
+        } else if (dias > 7 && dias <= 15) {
+            return "bg-yellow-800"
+        }
+    }
+
     return (
         <>
             <section className="overflow-x-auto">
@@ -62,9 +77,19 @@ export default function Lista({
                         {produtos.length > 0 ? produtos.map((p: Product) => (
                             <tr
                                 key={p.id}
-                                className="odd:bg-slate-900 even:bg-slate-800 hover:bg-slate-700 transition"
+                                className="border border-slate-700 odd:bg-slate-900 even:bg-slate-800 transition"
                             >
-                                <td className="p-3">{p.nome}</td>
+                                <td className="p-3">
+                                    <div className="flex items-center gap-3">
+                                        <div
+                                            className={`${BGColor(p.validade)} w-1 h-15 shadow-sm`}
+                                            title="Status de validade"
+                                        ></div>
+
+                                        <span>{p.nome}</span>
+                                    </div>
+                                </td>
+
                                 <td className="p-3">R$ {Number(p.preco).toFixed(2)}</td>
                                 <td className="p-3">{formatData(p.validade)}</td>
                                 <td className="p-3 flex flex-col sm:flex-row gap-2 justify-center">
