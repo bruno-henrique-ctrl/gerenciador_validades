@@ -13,9 +13,11 @@ export async function GET() {
 
         if (!dados) continue;
 
+        const ontem = new Date(hoje.getDate() - 1);
+
         const validade = new Date(dados.validade);
 
-        if (validade < hoje) {
+        if (validade < ontem) {
             await redis.del(`produto:${id}`);
             await redis.lrem("produtos:list", 0, id);
             continue;
