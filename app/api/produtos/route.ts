@@ -6,11 +6,20 @@ export async function GET() {
     const ids = await redis.lrange("produtos:list", 0, -1);
 
     const produtos: Product[] = [];
+    const hoje = new Date();
 
     for (const id of ids) {
         const dados = await redis.hgetall<Product>(`produto:${id}`);
 
         if (!dados) continue;
+
+        const validade = new Date(dados.validade);
+
+        if (validade < hoje) {
+            await redis.del(`produto:${id}`);
+            await redis.lrem("produtos:list", 0, id);
+            continue;
+        }
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { id: _, ...resto } = dados;
@@ -45,3 +54,4 @@ export async function POST(req: Request) {
 
     return Response.json({ id, ...data });
 }
+

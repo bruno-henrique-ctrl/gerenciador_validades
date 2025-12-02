@@ -81,6 +81,7 @@ export default function Cadastrar({
                         <input
                             id="validade"
                             type="date"
+                            min={new Date().toISOString().split("T")[0]}
                             className="p-2 rounded-md bg-slate-700 text-white focus:ring-2 focus:ring-cyan-500"
                             value={form.validade}
                             onChange={(e) => setForm({ ...form, validade: e.target.value })}

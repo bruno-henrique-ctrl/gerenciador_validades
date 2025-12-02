@@ -132,6 +132,9 @@ export default function Lista({
                                                 </div>
 
                                                 <div className="flex flex-col md:flex-row justify-center gap-3 md:gap-4 w-full">
+                                                    <label htmlFor="senha" className="sr-only">
+                                                        Senha para confirmar
+                                                    </label>
                                                     <input
                                                         type="text"
                                                         id="senha"
@@ -146,10 +149,7 @@ export default function Lista({
 
                                                     <button
                                                         onClick={() => setModalDeletando(false)}
-                                                        className="
-            bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md font-semibold
-            transition w-full md:w-auto
-        "
+                                                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md font-semibold transition w-full md:w-auto"
                                                     >
                                                         Cancelar
                                                     </button>
