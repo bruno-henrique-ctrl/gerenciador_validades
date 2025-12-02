@@ -17,6 +17,8 @@ type Props = {
     precoSugerido: number | null
 }
 
+const senha = process.env.NEXT_PUBLIC_SENHA
+
 export default function Lista({
     produtos,
     excluir,
@@ -56,8 +58,6 @@ export default function Lista({
         const today = new Date();
         const diff = date.getTime() - today.getTime();
         const dias = Math.ceil(diff / (1000 * 60 * 60 * 24));
-
-        console.log(dias)
 
         if (dias <= 7) {
             return "bg-red-900"
@@ -124,30 +124,37 @@ export default function Lista({
                                     </button>
                                     {modalDeletando && produtoAlvo === p.id && (
                                         <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50">
-                                            <div className="bg-slate-800 p-6 rounded-lg shadow-lg max-w-sm w-[90%] text-center">
+                                            <div className="bg-slate-800 p-6 rounded-lg max-w-sm w-[90%] text-center">
                                                 <h2 className="text-lg font-bold mb-3 text-red-400">⚠️ Confirmar Exclusão</h2>
-                                                <p className="text-slate-300 mb-5">
-                                                    Tem certeza que deseja excluir o produto{" "}
-                                                    <span className="font-semibold text-white">{p.nome}</span>?
-                                                    <br />
-                                                    Essa ação não poderá ser desfeita.
-                                                </p>
+                                                <div className="text-slate-300 mb-5">
+                                                    <p>Tem certeza que deseja excluir o produto</p>
+                                                    <span className="font-semibold text-white shadow-lg">{p.nome}</span>?
+                                                </div>
 
-                                                <div className="flex justify-center gap-4">
-                                                    <button
-                                                        onClick={() => excluir(p.id)}
-                                                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-md font-semibold transition"
-                                                    >
-                                                        ✅ Confirmar
-                                                    </button>
+                                                <div className="flex flex-col md:flex-row justify-center gap-3 md:gap-4 w-full">
+                                                    <input
+                                                        type="text"
+                                                        id="senha"
+                                                        placeholder="Senha para Confirmar"
+                                                        className="border border-green-600 text-white px-4 py-2 rounded-md font-semibold transition w-full md:w-auto text-center"
+                                                        onChange={(e) => {
+                                                            if (senha === e.target.value) {
+                                                                excluir(p.id)
+                                                            }
+                                                        }}
+                                                    />
 
                                                     <button
                                                         onClick={() => setModalDeletando(false)}
-                                                        className="bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md font-semibold transition"
+                                                        className="
+            bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-md font-semibold
+            transition w-full md:w-auto
+        "
                                                     >
-                                                        ❌ Cancelar
+                                                        Cancelar
                                                     </button>
                                                 </div>
+
                                             </div>
                                         </div>
                                     )}
