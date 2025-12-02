@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌡️ Gerenciador de Validades
+***Sistema criado para o mercado onde trabalhei, com o objetivo de facilitar o controle de validades de produtos alimentícios.***
 
-## Getting Started
+---
 
-First, run the development server:
+## 🚀 Tecnologias utilizadas
 
-```bash
+- Next.js (com suporte PWA)
+- Typescript
+- TailwindCSS
+- API da OpenAI (OpenRouter com Glok)
+- Web Push Notifications
+- Upstash (Redis)
+- Vercel (Hospedagem e Cron para notificacoes)
+
+--- 
+
+## ▶️ Como rodar o projeto
+```sh
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Funcionalidades
+- Cadastro de produtos
+- Inserir nome, preço e data de validade
+- Listagem organizada
+- Produtos exibidos ordenados pela data mais próxima do vencimento
+- Sugestão de preço inteligente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+O sistema sugere um novo valor com base:
+- no preço atual
+- na proximidade da validade
+- no nível de urgência de venda
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 🔔 Notificações automáticas (Diarias)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+WebPush com alertas sobre:
+- Os 7 produtos mais próximos de vencer
+- O produto que vence no dia
+- Limpeza automática de produtos vencidos
+- Produtos com validade inferior à data atual são automaticamente removidos do sistema.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📱 Interface
+<img width="403" height="583" alt="print" src="https://github.com/user-attachments/assets/85803110-27b3-41e6-bc27-cf8184774455" />
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🌐 Link do projeto (Vercel)
+
+### 👉 https://gerenciador-validades.vercel.app/
